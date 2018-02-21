@@ -2,14 +2,14 @@ import numpy as np
 import copy
 from dataInfo import dataInfo
 #from createNode import createNode
-#import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as ET
 from readData import readData
 from sys import argv, exit
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import time
 import os.path
-#from matplotlib import style
-#style.use("fivethirtyeight")
+from matplotlib import style
+style.use("fivethirtyeight")
 
 def getDistOfPnts(subMat):
     dict = {}
@@ -38,6 +38,7 @@ def normalizeData(inst):
 def assignPnts(inst, disType, p):
     inst.clusters[:, 0] = -1.0
     cntUpdates = 0
+    dist = 0
     for i in range(0, inst.N):
         prevAssng = inst.clusters[i, 1]
         for j in range(0, inst.K):
@@ -47,12 +48,12 @@ def assignPnts(inst, disType, p):
                 dist = ((np.power(abs(inst.data[i, :-1] - inst.centroids[j, :]), p)).sum()) ** (1.0 / p)
             elif (disType == 'fun1'):
                 indx = inst.data[i, :-1] > inst.centroids[j, :]
-                dist = (np.power((inst.data[i, indx] - inst.centroids[j, indx]).sum(), p) + np.power(
-                    (inst.centroids[j, np.invert(indx)] - inst.data[i, np.invert(indx)]).sum(), p)) ** (1.0 / p)
+                dist = (np.power((inst.data[i, np.append(indx, [False])] - inst.centroids[j, indx]).sum(), p) + np.power(
+                    (inst.centroids[j, np.invert(indx)] - inst.data[i, np.append(np.invert(indx),[False])]).sum(), p)) ** (1.0 / p)
             elif (disType == 'fun2'):
                 indx = inst.data[i, :-1] > inst.centroids[j, :]
-                dist = (np.power((inst.data[i, indx] - inst.centroids[j, indx]).sum(), p) +
-                        np.power((inst.centroids[j, np.invert(indx)] - inst.data[i, np.invert(indx)]).sum(), p)) ** (1.0 / p)
+                dist = (np.power((inst.data[i, np.append(indx, [False])] - inst.centroids[j, indx]).sum(), p) +
+                        np.power((inst.centroids[j, np.invert(indx)] - inst.data[i, np.append(np.invert(indx),[False])]).sum(), p)) ** (1.0 / p)
                 temp = np.absolute(inst.data[i, :-1] - inst.centroids[j, :]).reshape(1, inst.k)
                 temp = np.append(temp, np.absolute(inst.data[i, :-1]).reshape(1, inst.k), axis=0)
                 temp = np.append(temp, np.absolute(inst.centroids[j, :]).reshape(1, inst.k), axis=0)
@@ -108,12 +109,12 @@ def K_means(inst, distFun, epsl, p):
         inst.itert = 0
         inst.dist_Cnt = 0
         print("iter | number of distance cal")
-    #print ('\r  {}  |     {:,}'.format(inst.itert, inst.dist_Cnt), end=""),
+    print ('\r  {}  |     {:,}'.format(inst.itert, inst.dist_Cnt), end=""),
     inst.itert += 1
     SSN, pntUpdates = assignPnts(inst, distFun, p)
     if animate:
         updateGraph(figN1, inst.centroids[:,0], inst.centroids[:,1], "Centroids")
-        for j in range(0, clustrNo):
+        for j in range(0, inst.K):
             ind = inst.clusters[:, 1]
             samData = inst.data[ind == j, :-1]
             if j == 0: updateGraph(figN2, samData[:,0], samData[:,1], "Cluster", j)
@@ -124,11 +125,11 @@ def K_means(inst, distFun, epsl, p):
     K_means(inst, distFun, epsl, p)
     return
 
-def calAccuracy(inst, clustrNo):
+def calAccuracy(inst):
     purity = 0
     realClasses = inst.data[:,-1]
     newClasses = inst.clusters[:, 1]
-    for j in range(0, clustrNo):
+    for j in range(0, inst.K):
         cluster = realClasses[newClasses == j]
         _, majority = getDistOfPnts(cluster)
         purity += majority
@@ -140,12 +141,12 @@ def calAccuracy(inst, clustrNo):
 #arguments setting
 args = iter(argv)
 next(args)
-clustrNo = 3
+clustrNo = 0
 n= 10000
 k = 1001
 p = 1
 epsl = 0.1
-animate = False
+animate = True
 if animate:
     #plot setting
     plt.show()
@@ -180,6 +181,8 @@ for item in args:
         inputClassesTs = next(args)
     elif item == "-f":
         distFun = next(args)
+    elif item == "-a":
+        animate = next(args)
 
 if inputFileTr.lower() == "" or inputClassesTr == "":#or inputFileTs.lower() == "" or inputClassesTs.lower() == "" or
     print("You have NOT entered correct inputs!")
@@ -189,8 +192,8 @@ if distFun.lower() is ("city"):
 elif (distFun.lower() in ("fun1", "fun2", "cosine", "eucli", "")):
     p = 2
 
-inputFileTr = "X_banknote.txt"#X_iris.txt"#X_data1_rand_2_150.txt"#X_train.txt"#
-inputClassesTr = "y_banknote.txt"#iris.txt"#y_data1_class_1_150.txt"#y_train.txt"#
+#inputFileTr = "X_iris.txt"#X_data1_rand_2_150.txt"#X_train.txt"#"X_banknote.txt"#
+#inputClassesTr = "y_iris.txt"#y_data1_class_1_150.txt"#y_train.txt"#banknote.txt"#
 #inputFileTs = "X_test.txt"#"X_data2_rand_2_150.txt"#"
 #inputClassesTs = "y_test.txt"#y_data2_class_1_150.txt"#"
 
@@ -207,37 +210,41 @@ if inputClassesTs != "":
 
 data = np.append(data1, data2, axis=0) if (inputClassesTs != "") else data1
 
-result_file = open('K-means_%s_%d_%s.txt' %("rand", p, distFun),'a+')
-for clustrNo in [3, 20, 100]:
-    result_file.write('\n%sp = %d n = %d k = %d\n' % (distFun, p, n, clustrNo))
-    result_file.write("iters    num of dist cal\n")
-    for rept in range(20):
-        if (os.path.isfile("data.npy")):
-            data = np.load("data.npy")
-        else:
-            print("Generating new random data ...")
-            data = np.random.random((n, k))
-            np.save("data", data)
-        if (distFun == ""): distFun = "eucli"
+#result_file = open('K-means_%s_%d_%s.txt' %("rand", p, distFun),'a+')
+#for clustrNo in [3, 20, 100]:
+#    result_file.write('\n%sp = %d n = %d k = %d\n' % (distFun, p, n, clustrNo))
+#    result_file.write("iters    num of dist cal\n")
+#    for rept in range(20):
+#        if (os.path.isfile("data.npy")):
+#            data = np.load("data.npy")
+#        else:
+#            print("Generating new random data ...")
+#            data = np.random.random((n, k))
+#            np.save("data", data)
+#        if (distFun == ""): distFun = "eucli"
 
-        print("\nRunning K-means algorithm ...")
-        inst = dataInfo(data)
-        inst.K = clustrNo
-        K_means(inst, distFun.lower(), epsl, p)
-        result_file.write("{} {:,}\n".format(inst.itert, inst.dist_Cnt))
-        result_file.flush()
+#        print("\nRunning K-means algorithm ...")
+#        inst = dataInfo(data)
+#        inst.K = clustrNo
+#        K_means(inst, distFun.lower(), epsl, p)
+#        result_file.write("{} {:,}\n".format(inst.itert, inst.dist_Cnt))
+#        result_file.flush()
 
-result_file.close()
+#result_file.close()
 
+
+if (distFun == ""): distFun = "eucli"
+if (animate.lower() == "false"): animate = False
+else: animate = True
+
+print("\nRunning K-means algorithm ...")
+inst = dataInfo(data)
+inst.K = clustrNo
+K_means(inst, distFun.lower(), epsl, p)
 print ("\n")
 print("iterations: %d\nnumber of distance cal: %d" % (inst.itert, inst.dist_Cnt))
 
-#if (distFun == ""): distFun = "eucli"
-
-#print("\nRunning K-means algorithm ...")
-#inst = dataInfo(data)
-#clustrNo = K_means(inst, clustrNo, distFun.lower(), epsl, 0, p)
-#calAccuracy(inst, clustrNo)
+calAccuracy(inst)
 if animate:
     plt.legend()
     plt.savefig('result.png', bbox_inches='tight')
