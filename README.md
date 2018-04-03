@@ -1,26 +1,34 @@
 # K-means
 a k-means algorithm which can use different distance functions in calculating SSN
 
-To run the program type:
+Three data set are provided for evaluation as follow with the following names:
+Human Activity Recognition: X_train.txt, y_train.txt, X_test.txt, y_test.txt
+Iris: X_iris.txt y_iris.txt
+Banknote: X_banknote.txt, y_banknote.txt
 
-python K-means.py -itr1 first_file_name -itr2 first_data_classes -its1 second_file_name -its2 second_data_classes -f dist_function -a visualization -K number_of_clusters
+To run the program you can type:
+python Q3_a argumnets
 
-which:
+results which are the estimated clasess will be written on a txt file after each run of the program
 
-first_file_name, second_file_name: name of the first data file which should include data points in rows and features in columns
+Arguments for the command should be provided after these keys (some of them are optional:
 
-first_data_classes, second_data_classes: name of the first class file which should include real classes for each data point
+-itr1  : name of a file containing attribute values
+-itr2   : name of a file containing class values
 
-dist_function: name of the desired distance function which can be: "eucli" "cosine" "fun1" "fun2"
+OPTIONALS:
+-its1  : name of a file containing attribute values
+-its2   : name of a file containing class values
+-f    : distance function name as "eucli" or "city" or "cosine" or "fun1" or "fun2" (DEFUALT: "eucli")
+-K	: number of desired cluster (DEFAULT: number of 	clusters in the data set)
+-r	:number of repetitions or restarting the program(DEFAULT: 1) 
+-a	:visualization mode which can be "false" or "true" (DEFAULT: "false")
+-ri	:random initialization of the custer centers which can be "false" or "true" (DEFAULT: "false") NOTE: in true mode the program will pick the centers furthest possible from each other.
 
-visualization: To turn visualization off or on by choosing: "false" " true" respectively (it is recommended that use this option for data with only two clusters
+sample running commands:
 
-number_of_clusters: number of clusters which you need from data. If you skip this argument, the program with assign number of classes in the input class file
+python K-means.py -itr1 X_iris.txt -itr2 y_iris.txt -r 5 -a false -ri true -f fun2
 
-example: 
-
-python K-means.py -itr1 X_iris.txt -itr2 y_iris.txt -f eucli -a false -K 3
-
-python K-means.py -itr1 X_data1.txt -itr2 y_data1.txt -its1 X_data2.txt -its2 y_data2.txt -f fun2 -a true
+python K-means.py -itr1 X_train.txt -itr2 y_train.txt -its1 X_test.txt -its2 y_test.txt -r 1 -a false -ri false -f fun1
 
 
